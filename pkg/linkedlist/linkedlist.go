@@ -13,7 +13,8 @@ var (
 	ErrDupUUID   = fmt.Errorf("duplicate UUIDs cannot be in the same list")
 )
 
-type list struct {
+// List is a double linked list
+type List struct {
 	first *node
 	last  *node
 	nodes map[string]*node
@@ -31,20 +32,20 @@ type node struct {
 	next     *node
 }
 
-func NewList() list {
-	return list{
+func NewList() List {
+	return List{
 		nodes: make(map[string]*node),
 		lock:  &sync.Mutex{},
 	}
 }
 
 // AddItem will add an item to the bottom of the list
-func (l *list) AddItem(entry Item) {
+func (l *List) AddItem(entry Item) string {
 	if entry.UUID == "" {
 		uuid, err := uuid.NewRandom()
 		if err != nil {
 			fmt.Println("uuid generation failed!?!")
-			return
+			return ""
 		}
 		entry.UUID = uuid.String()
 	}
@@ -57,15 +58,16 @@ func (l *list) AddItem(entry Item) {
 	if l.first == nil {
 		l.first = &n
 		l.last = &n
-		return
+		return entry.UUID
 	}
 	n.previous = l.last
 	l.last.next = &n
 	l.last = &n
+	return entry.UUID
 }
 
 // EditItem is used to update the text inside an item
-func (l *list) EditItem(name string, value string) {
+func (l *List) EditItem(name string, value string) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 	n, ok := l.nodes[name]
@@ -77,7 +79,7 @@ func (l *list) EditItem(name string, value string) {
 }
 
 // DeleteItem is used to delete an item from the list
-func (l *list) DeleteItem(name string) {
+func (l *List) DeleteItem(name string) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 	n, ok := l.nodes[name]
@@ -96,7 +98,7 @@ func (l *list) DeleteItem(name string) {
 }
 
 // MoveItemAfter takes in the name of the item wanting to be moved and the location where it will be moved after
-func (l *list) MoveItemAfter(name string, location string) {
+func (l *List) MoveItemAfter(name string, location string) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 	if name == location {
@@ -135,7 +137,7 @@ func (l *list) MoveItemAfter(name string, location string) {
 }
 
 // MoveItemBefore takes in the name of the item wanting to be moved and the location where it will be moved in front of
-func (l *list) MoveItemBefore(name string, location string) {
+func (l *List) MoveItemBefore(name string, location string) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 	if name == location {
@@ -174,7 +176,7 @@ func (l *list) MoveItemBefore(name string, location string) {
 }
 
 // PrintAll is used to print out a list of items
-func (l *list) PrintAll() {
+func (l *List) PrintAll() {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 	node := l.first
@@ -185,7 +187,7 @@ func (l *list) PrintAll() {
 }
 
 // ListAll is used to retrieve a list of all items
-func (l *list) ListAll() []Item {
+func (l *List) ListAll() []Item {
 	var items []Item
 	l.lock.Lock()
 	defer l.lock.Unlock()
@@ -198,7 +200,7 @@ func (l *list) ListAll() []Item {
 }
 
 // ListAllReverse is used to retrieve a list of all items in the reverse order
-func (l *list) ListAllReverse() []Item {
+func (l *List) ListAllReverse() []Item {
 	var items []Item
 	l.lock.Lock()
 	defer l.lock.Unlock()
@@ -211,7 +213,7 @@ func (l *list) ListAllReverse() []Item {
 }
 
 // MarshalJSON is used to create a custom JSON payload for list
-func (l list) MarshalJSON() ([]byte, error) {
+func (l List) MarshalJSON() ([]byte, error) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 	var values []Item
@@ -224,11 +226,14 @@ func (l list) MarshalJSON() ([]byte, error) {
 		values = append(values, v)
 		node = node.next
 	}
+	if len(values) == 0 {
+		return []byte("[]"), nil
+	}
 	return json.Marshal(values)
 }
 
 // UnmarshalJSON is used to generate a list from a json payload
-func (l *list) UnmarshalJSON(b []byte) error {
+func (l *List) UnmarshalJSON(b []byte) error {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 	var values []Item
@@ -236,7 +241,6 @@ func (l *list) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(values)
 	if len(values) == 0 {
 		return nil
 	}

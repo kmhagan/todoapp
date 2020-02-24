@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func createTestList(count int) list {
+func createTestList(count int) List {
 	l := NewList()
 	for i := 0; i < count; i++ {
 		entry := Item{
