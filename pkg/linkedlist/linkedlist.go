@@ -85,7 +85,7 @@ func (l *List) EditItem(name string, value string) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 	if len(value) > l.MaxTextLength {
-		ln("Can't make item length that long")
+		fmt.Println("Can't make item length that long")
 		return
 	}
 	n, ok := l.nodes[name]

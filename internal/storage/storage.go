@@ -115,8 +115,6 @@ func (l *local) NewList(name string, maxItemsInList int) (*List, error) {
 	}
 	l.M[uuid.String()] = newList
 	l.Total++
-	fmt.Println("adding to total in localstore")
-	fmt.Println(l.Total)
 	l.changesSinceSave = true
 	return newList, nil
 }
