@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"time"
+
 	"todoapp/internal/storage"
 	"todoapp/pkg/linkedlist"
 
@@ -11,6 +14,21 @@ import (
 )
 
 func main() {
+	err := storage.Localstore.Load()
+	if err != nil {
+		fmt.Printf("Failed to load data!")
+		os.Exit(1)
+	}
+	go func() {
+		// Save TODO: add sigterm handling to save on exit
+		for {
+			time.Sleep(5 * time.Second)
+			err := storage.Localstore.Save()
+			if err != nil {
+				fmt.Printf("saving file failed: %v", err)
+			}
+		}
+	}()
 	r := chi.NewRouter()
 	r.Get("/list/all", allLists)
 	r.Post("/list/new", newList)
@@ -48,7 +66,7 @@ func newList(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "please use 'name' parameter", http.StatusUnprocessableEntity)
 		return
 	}
-	l, err := storage.Localstore.NewList(name[0])
+	l, err := storage.Localstore.NewList(name[0], 1000)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -104,9 +122,19 @@ func addItemToList(w http.ResponseWriter, r *http.Request) {
 		Text: text[0],
 		UUID: itemUUID,
 	}
-	id := list.List.AddItem(entry)
+	id, err := list.List.AddItem(entry)
+	if err != nil {
+		// TODO: different status code if error is because of max
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	entry.UUID = id
-	b, err := json.Marshal(entry)
+	var b []byte
+	if len(r.Form["return_list"]) > 0 && r.Form["return_list"][0] == "true" {
+		b, err = json.Marshal(list)
+	} else {
+		b, err = json.Marshal(entry)
+	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -130,6 +158,14 @@ func editItemFromList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	list.List.EditItem(itemUUID, text[0])
+	if len(r.Form["return_list"]) > 0 && r.Form["return_list"][0] == "true" {
+		b, err := json.Marshal(list)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(b)
+	}
 }
 
 func deleteItemFromList(w http.ResponseWriter, r *http.Request) {

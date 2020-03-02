@@ -7,7 +7,7 @@ import (
 )
 
 func createTestList(count int) List {
-	l := NewList()
+	l := NewList(10)
 	for i := 0; i < count; i++ {
 		entry := Item{
 			UUID: fmt.Sprintf("%d", i),
@@ -155,7 +155,7 @@ func TestJSON(t *testing.T) {
 		t.Fatalf("expected json `%s` instead got %s", expectedB, b)
 	}
 
-	l = NewList()
+	l = NewList(10)
 	err = json.Unmarshal(b, &l)
 	all := l.ListAll()
 	if len(all) != 4 {
