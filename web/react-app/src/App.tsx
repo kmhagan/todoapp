@@ -1,6 +1,6 @@
 import React from 'react';
 import logo from './logo.svg';
-import TodoList from './components/TodoList'
+import TodoApp from './components/TodoApp'
 import './App.css';
 
 function App() {
@@ -8,7 +8,7 @@ function App() {
     <div className="App">
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
-        <TodoList />
+        <TodoApp />
       </header>
     </div>
   );
