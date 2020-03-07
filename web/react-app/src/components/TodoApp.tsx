@@ -1,50 +1,38 @@
-import React from 'react'
+import React, { FunctionComponent, useState } from 'react'
 
-interface TodoAppState {
-  data: Array<string>,
-  current: string,
+interface Props {
 }
 
-class TodoApp extends React.Component<{}, TodoAppState> {
-  constructor(props: TodoAppState) {
-    super(props)
-    this.state = {
-      data: [],
-      current: "",
-    }
-    this.handleChange = this.handleChange.bind(this);
-    this.handleSubmit = this.handleSubmit.bind(this);
+const TodoApp: FunctionComponent<Props> = (props) => {
+  const [data, setData] = useState(Array<string>())
+  const [current, setCurrent] = useState("")
+
+  const handleChange = function(event: React.ChangeEvent<HTMLInputElement>) {
+    setCurrent(event.target.value)
   }
 
-  handleChange(event: React.ChangeEvent<HTMLInputElement>) {
-    this.setState({current: event.target.value});
-  }
-
-  handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  const handleSubmit = function(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    this.setState({
-      data: [...this.state.data, this.state.current],
-      current: "",
-    });
+    setData([...data, current])
+    setCurrent("")
   }
 
-  render() {
-    return (
-      <div className="todoListMain">
-        <div className="header">
-          <form onSubmit={this.handleSubmit}>
-            <input placeholder="Task" value={this.state.current} onChange={this.handleChange} />
-            <button type="submit"> Add Task </button>
-            {this.state.data.map((data, i) => (
-              <li key={i}>
-                {data}
-              </li>
-            ))}
-          </form>
-        </div>
+  return (
+    <div className="todoListMain">
+      <div className="header">
+        <form onSubmit={handleSubmit}>
+          <input placeholder="Task" value={current} onChange={handleChange} />
+          <button type="submit"> Add Task </button>
+          {data.map((value, i) => (
+            <li key={i}>
+              {value}
+            </li>
+          ))}
+        </form>
       </div>
-    )
-  }
+    </div>
+  )
+
 }
 
 export default TodoApp;
