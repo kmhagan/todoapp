@@ -42,16 +42,6 @@ interface Tasks {
   List: List;
 }
 
-const getLists= async () => {
-  const res = await fetch(`${API_URL}/list/all`)
-  return res.json() as Promise<ListSimple[]>
-}
-
-const getTasks= async (id: string) => {
-  const res = await fetch(`${API_URL}/list/id/${id}`)
-  return res.json() as Promise<Tasks>
-}
-
 const TodoApp: FunctionComponent = () => {
   const [selectedList, setSelectedList] = useState("")
   const selectedListFunc = function(id: string) {
@@ -68,6 +58,25 @@ const TodoApp: FunctionComponent = () => {
   )
 }
 
+const getLists = async () => {
+  const res = await fetch(`${API_URL}/list/all`)
+  return res.json() as Promise<ListSimple[]>
+}
+
+const createList = async (name: string) => {
+  const res = await fetch(`${API_URL}/list/new?name=`+encodeURIComponent(name), {
+    method: 'post',
+  })
+  return res.json() as Promise<ListSimple>
+}
+
+const deleteList = async (listID: string) => {
+  const res = await fetch(`${API_URL}/list/id/${listID}?return_list=true`, {
+    method: 'delete',
+  })
+  return res.json() as Promise<ListSimple[]>
+}
+
 const TodoAppLists: FunctionComponent<ListProps> = (props) => {
   const [current, setCurrent] = useState("")
   const [lists, setLists] = useState(Array<ListSimple>())
@@ -80,18 +89,22 @@ const TodoAppLists: FunctionComponent<ListProps> = (props) => {
     )
   },[])
 
-  useEffect(() => {
-    console.log(lists)
-  },[lists])
-
   const handleChange = function(event: React.ChangeEvent<HTMLInputElement>) {
     setCurrent(event.target.value)
   }
 
   const handleSubmit = function(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    console.log("create new list:", current)
-    setCurrent("")
+    createList(current).then((res) => {
+      setCurrent("")
+      props.callback(res.UUID)
+    })
+  }
+
+  const handleDelete = function(id: string) {
+    deleteList(id).then(res => {
+      setLists(res)
+    })
   }
 
   return (
@@ -100,15 +113,35 @@ const TodoAppLists: FunctionComponent<ListProps> = (props) => {
         <form onSubmit={handleSubmit}>
           <input placeholder="Title" value={current} onChange={handleChange} />
           <button type="submit"> Create new list</button>
-          {lists.map((value) => (
-            <li key={value.UUID} onClick={() => props.callback(value.UUID)}>
-              {value.Name}
+          {lists && lists.map((value) => (
+            <li key={value.UUID}>
+              <a onClick={() => props.callback(value.UUID)}>{value.Name} </a>
+              <a onClick={() => handleDelete(value.UUID)}>X</a>
             </li>
           ))}
         </form>
       </div>
     </div>
   )
+}
+
+const getTasks = async (id: string) => {
+  const res = await fetch(`${API_URL}/list/id/${id}`)
+  return res.json() as Promise<Tasks>
+}
+
+const addTask = async (listID: string, text: string) => {
+  const res = await fetch(`${API_URL}/list/id/${listID}/item/add?text=${encodeURIComponent(text)}&return_list=true`, {
+    method: 'post',
+  })
+  return res.json() as Promise<Tasks>
+}
+
+const deleteTask = async (listID: string, taskID: string) => {
+  const res = await fetch(`${API_URL}/list/id/${listID}/item/id/${taskID}?return_list=true`, {
+    method: 'delete',
+  })
+  return res.json() as Promise<Tasks>
 }
 
 const TodoAppTasks: FunctionComponent<TaskProps> = (props) => {
@@ -129,18 +162,27 @@ const TodoAppTasks: FunctionComponent<TaskProps> = (props) => {
 
   const handleSubmit = function(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    console.log("add to tasks:", current)
+    addTask(props.UUID, current).then((res) => {
+      setData(res)
+    })
     setCurrent("")
+  }
+
+  const handleDelete = function(listID: string, taskID: string) {
+    deleteTask(props.UUID, taskID).then(res => {
+      setData(res)
+    })
   }
 
   return (
     <div className="todoListMain">
       <div className="header">
+      <h1>{data.Name}</h1>
         <form onSubmit={handleSubmit}>
           <input placeholder="Task" value={current} onChange={handleChange} />
           <button type="submit"> Add Task </button>
-          {data.List && data.List.Items.map((value) => (
-            <li key={value.UUID}>
+          {data.List && data.List.Items && data.List.Items.map((value) => (
+            <li key={value.UUID} onClick={() => handleDelete(props.UUID, value.UUID)}>
               {value.value}
             </li>
           ))}

@@ -58,7 +58,7 @@ func main() {
 	http.ListenAndServe(port, r)
 }
 
-func allLists(w http.ResponseWriter, r *http.Request) {
+func allListsBrief() []*storage.List {
 	l := storage.Localstore.AllLists()
 	// we don't want to return the actual lists, just summary
 	var l2 []*storage.List
@@ -67,7 +67,12 @@ func allLists(w http.ResponseWriter, r *http.Request) {
 		v2.List = nil
 		l2 = append(l2, &v2)
 	}
-	b, err := json.Marshal(l2)
+	return l
+}
+
+func allLists(w http.ResponseWriter, r *http.Request) {
+	l := allListsBrief()
+	b, err := json.Marshal(l)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -113,6 +118,16 @@ func getList(w http.ResponseWriter, r *http.Request) {
 func deleteList(w http.ResponseWriter, r *http.Request) {
 	uuid := chi.URLParam(r, "uuid")
 	storage.Localstore.DeleteList(uuid)
+	r.ParseForm()
+	if len(r.Form["return_list"]) > 0 && r.Form["return_list"][0] == "true" {
+		l := allListsBrief()
+		b, err := json.Marshal(l)
+		if err != nil {
+			http.Error(w, "deleteList marshal failed: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(b)
+	}
 	return
 }
 
@@ -140,6 +155,7 @@ func addItemToList(w http.ResponseWriter, r *http.Request) {
 	}
 	id, err := list.List.AddItem(entry)
 	if err != nil {
+		fmt.Printf("failed to add item to list: %+v, reason: %v\n", list.List, err)
 		// TODO: different status code if error is because of max
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -193,4 +209,13 @@ func deleteItemFromList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	list.List.DeleteItem(itemUUID)
+	r.ParseForm()
+	if len(r.Form["return_list"]) > 0 && r.Form["return_list"][0] == "true" {
+		b, err := json.Marshal(list)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(b)
+	}
 }

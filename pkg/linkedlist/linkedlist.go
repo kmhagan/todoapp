@@ -49,7 +49,7 @@ func NewList(maxItems int) List {
 // AddItem will add an item to the bottom of the list
 func (l *List) AddItem(entry Item) (string, error) {
 	if l.Total >= l.MaxTotal {
-		return "", fmt.Errorf("already at total number of items in list")
+		return "", fmt.Errorf("at max items %d of %d in list", l.Total, l.MaxTotal)
 	}
 	if len(entry.Text) > l.MaxTextLength {
 		return "", fmt.Errorf("entry text is too long")
@@ -258,9 +258,6 @@ func (l List) MarshalJSON() ([]byte, error) {
 	values.MaxTotal = l.MaxTotal
 	values.MaxTextLength = l.MaxTextLength
 	values.Total = l.Total
-	if len(values.Items) == 0 {
-		return []byte("{}"), nil
-	}
 	return json.Marshal(values)
 }
 
@@ -278,13 +275,13 @@ func (l *List) UnmarshalJSON(b []byte) error {
 		MaxTextLength int
 	}
 	var values item
-	l.MaxTotal = values.MaxTotal
-	l.MaxTextLength = values.MaxTextLength
-	l.Total = len(values.Items)
 	err := json.Unmarshal(b, &values)
 	if err != nil {
 		return err
 	}
+	l.MaxTotal = values.MaxTotal
+	l.MaxTextLength = values.MaxTextLength
+	l.Total = len(values.Items)
 	if len(values.Items) == 0 {
 		return nil
 	}
